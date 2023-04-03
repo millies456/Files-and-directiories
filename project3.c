@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
-#include <libgen.h>
+#include <libgen.h> //manipulates path names
 #include <stdbool.h>
 #include <ctype.h>
 #define BUFSIZE 4096
@@ -91,15 +91,21 @@ int copy_file(const char *src_path, const char *dst_path) {
     
     return ret;
 }
-
 int main(int argc, char* argv[]) {
     if(argc < 4) {
         printf("Invalid arguments.\n");
-        printf("Usage: %s source1 [source2 ...] destination\n", argv[0]);
+        printf("Usage: %s copy|move source1 [source2 ...] destination\n", argv[0]);
         return 1;
     }
-    char* command = basename(argv[0]);
-    bool is_move = strcmp(command, "move") == 0;
+    
+    bool is_move = strcmp(argv[1], "move") == 0;
+    bool is_copy = strcmp(argv[1], "copy") == 0;
+    
+    if(!is_move && !is_copy) {
+        printf("Invalid command '%s'. Use 'copy' or 'move'.\n", argv[1]);
+        return 1;
+    }
+    
     char* destination = argv[argc - 1];
     struct stat sb;
     stat(destination, &sb);
@@ -107,10 +113,11 @@ int main(int argc, char* argv[]) {
         printf("Invalid destination: %s is not a directory or device.\n", destination);
         return 1;
     }
-    int num_files = argc - 2;
+    
+    int num_files = argc - 3;
     char* files[num_files];
-    for(int i = 1; i <= num_files; i++) {
-        char* file = argv[i];
+    for(int i = 0; i < num_files; i++) {
+        char* file = argv[i + 2];
         if(stat(file, &sb) != 0) {
             printf("File %s does not exist.\n", file);
             continue;
@@ -144,10 +151,7 @@ int main(int argc, char* argv[]) {
         }
         fclose(src_file);
         fclose(dest_file);
-        if(is_move) {
-            unlink(file);
-            printf("Moved '%s' to '%s'\n", file, dest_path);
-        }
+        printf("Copied '%s' to '%s'\n", file, dest_path);
     }
     return 0;
 }
